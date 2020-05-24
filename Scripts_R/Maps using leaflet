@@ -1,0 +1,116 @@
+# Librerías:
+###################
+library(sp)
+library(rgdal) #readOGR
+library(RColorBrewer)
+library(classInt)
+library(foreign)
+library(maptools)
+library(leaflet)
+library(maps)
+###############################################################################
+setwd("C:/Users/Rodrigo/Dropbox/Tesis/figuras/MapasR")
+dirmapas <- "~/Users/Rodrigo/Dropbox/Tesis/figuras/MapasR"
+poligonos <- readOGR("cb_2013_us_cbsa_500k.SHP",layer="cb_2013_us_cbsa_500k")
+
+###FILTRAR MA´s
+base1<-subset(poligonos, LSAD=="M1")
+
+base1 = base1[base1$GEOID!=21820, ]
+base1 = base1[base1$GEOID!=11260, ]
+base1 = base1[base1$GEOID!=41980, ]
+base1 = base1[base1$GEOID!=32420, ]
+base1 = base1[base1$GEOID!=28180, ]
+base1 = base1[base1$GEOID!=46520, ]
+base1 = base1[base1$GEOID!=27980, ]
+base1 = base1[base1$GEOID!=25900, ]
+
+base1 = base1[base1$GEOID!=10380, ]
+base1 = base1[base1$GEOID!=32420, ]
+base1 = base1[base1$GEOID!=41900, ]
+base1 = base1[base1$GEOID!=11640, ]
+base1 = base1[base1$GEOID!=10260, ]
+base1 = base1[base1$GEOID!=38660, ]
+base1 = base1[base1$GEOID!=27580, ]
+base1 = base1[base1$GEOID!=41980, ]
+base1 = base1[base1$GEOID!=25020, ]
+plot(base1)
+#class(base1)
+
+##################################################################
+##  CARGO DATOS Y FILTRO PARA OBTENER DATA 144
+datos_seg <- read.csv2("C:/Users/Genesis/Dropbox/Tesis/figuras/MapasR/datos_seg.csv")
+base2<-merge(base1,datos_seg,by="GEOID") 
+base2<-subset(base2, Gini!="")
+
+
+
+########### MAPA PARA Gini #####################################
+
+Gini <- base2[, 10]
+Gini <- as.data.frame(Gini)
+names(Gini) <- "Gini"
+row.names(Gini) <- row.names(base2)
+base2.data <- SpatialPolygonsDataFrame(base2,Gini)
+
+# class(X) info variable x
+
+plotvar_gini <- base2.data$Gini
+nclr <- 4# Numero de colores
+class <- classIntervals(round(plotvar_gini,2) ,nclr,style="quantile") # Aqui fijo el numero de decimales
+
+
+#Definir paleta 
+bin <- c(0.01968 , .1 , .18, .25 , .35)
+  pal <- colorBin(palette = c("sienna1", "firebrick4", "royalblue","darkblue"), domain = base2.data$Gini, bins = bin)
+  
+leaflet() %>% addTiles() %>% addProviderTiles(providers$Esri.WorldTerrain, options = providerTileOptions(opacity = .6)) %>% addProviderTiles(providers$Thunderforest,
+      options = providerTileOptions(opacity = .))%>%
+addPolygons(data=base2.data, fill=TRUE, stroke = FALSE, smoothFactor = 0.1, fillOpacity =1,
+            color = ~pal(Gini)) %>% addLegend("bottomleft", colors = "#03F", labels = "Segregation Maps") %>%
+  addLegend("bottomright", pal = pal, values = bin,
+            title = " Gini Index",
+            labFormat = labelFormat(prefix = "[", suffix = ")", digits = 2),
+            opacity = 1
+  )
+
+##################### MAPA RUGOSIDAD ###############################################
+
+
+datos_seg2 <- read.csv2("C:/Users/Genesis/Dropbox/Tesis/figuras/MapasR/datos_seg.csv")
+datos_seg2<-subset(datos_seg2, tri_ >0)
+base3<-merge(base1,datos_seg2,by="GEOID") 
+base3<-subset(base3, tri_ !="")
+
+#View(base3)
+
+
+tri <- base3[,37]
+tri <- as.data.frame(tri)
+names(tri) <- "tri"
+row.names(tri) <- row.names(base3)
+base3.data <- SpatialPolygonsDataFrame(base3,tri)
+
+
+
+plotvar_tri <- base3.data$tri
+nclr <- 4# Numero de colores
+
+class_tri <- classIntervals(round(plotvar_tri,2) ,nclr,style="quantile") # Aqui fijo el numero de decimales
+
+
+#Definir paleta 
+#class_tri
+bin_tri <- c(0.49 , 27.07 , 55.76 , 137.83 , 1158.92)
+pal_tri <- colorBin(palette = c("sienna1", "firebrick4", "royalblue","darkblue"), domain = base3.data$tri, bins = bin_tri)
+
+leaflet() %>% addTiles() %>% addProviderTiles(providers$Esri.WorldTerrain, options = providerTileOptions(opacity = .6)) %>% addProviderTiles(providers$Thunderforest,
+                                                                                                                                             options = providerTileOptions(opacity = .))%>%
+  addPolygons(data=base3.data, fill=TRUE, stroke = FALSE, smoothFactor = 0.1, fillOpacity =1,
+              color = ~pal_tri(tri)) %>% addLegend("bottomleft", colors = "#03F", labels = "Ruggedness") %>%
+  addLegend("bottomright", pal = pal_tri, values = bin_tri,
+            title = "Ruggedness Index",
+            labFormat = labelFormat(prefix = "[", suffix = ")", digits = 2),
+            opacity = 1)
+
+
